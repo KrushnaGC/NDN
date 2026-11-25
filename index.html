@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Named Data Networking: Content-Centric Router Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#edf1f3;--panel:#fff;--ink:#14232b;--mute:#52656f;--line:#cfd9de;--teal:#0e7c86;--amber:#b87800;--red:#c0392b;--soft:#e2eaee;--pI:#0e7c86;--pD:#e0a100;--pN:#c0392b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a20;--panel:#16252d;--ink:#e6eef2;--mute:#9db0ba;--line:#2a3d47;--teal:#4cc3cf;--amber:#f0b429;--red:#ff7b6b;--soft:#1d3039;--pI:#4cc3cf;--pD:#f0b429;--pN:#ff7b6b}}
+:root[data-theme="dark"]{--bg:#0f1a20;--panel:#16252d;--ink:#e6eef2;--mute:#9db0ba;--line:#2a3d47;--teal:#4cc3cf;--amber:#f0b429;--red:#ff7b6b;--soft:#1d3039;--pI:#4cc3cf;--pD:#f0b429;--pN:#ff7b6b}
+*{box-sizing:border-box}html{scroll-padding-top:60px;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 "Instrument Sans",system-ui,sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.1;margin:0}
+code,pre{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);display:flex;gap:20px;align-items:center;padding:10px 24px;overflow-x:auto;font-size:15px;white-space:nowrap}
+nav b{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;margin-right:auto}nav a{color:var(--mute);text-decoration:none}nav a:hover,nav a:focus-visible{color:var(--teal)}
+section,header{max-width:1240px;margin:0 auto;padding:0 24px}
+header{padding-top:34px;padding-bottom:18px}
+header h1{font-size:clamp(34px,5.2vw,64px);font-weight:800;letter-spacing:-.03em}
+header p{color:var(--mute);max-width:78ch;margin:10px 0 0;font-size:18px}
+.path{font:.85em "JetBrains Mono",monospace;background:var(--soft);padding:2px 7px;border-radius:4px;color:var(--teal)}
+.demo{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,1fr);gap:18px;padding-bottom:10px}
+@media (max-width:980px){.demo,.two{grid-template-columns:1fr!important}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.steps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+button,select,input{font:500 15px "Instrument Sans",sans-serif}
+button,select{padding:9px 13px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--teal)}button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+button.go{background:var(--teal);border-color:var(--teal);color:#fff}button.go b{opacity:.75;margin-right:5px}
+@media (prefers-color-scheme:dark){button.go{color:#08161b}}
+.opts{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font-size:14px;color:var(--mute);margin-bottom:6px}
+.opts label{display:flex;gap:8px;align-items:center}.opts input{width:110px;accent-color:var(--teal)}
+svg{width:100%;height:auto;display:block}
+.ln{stroke:var(--line);stroke-width:2.5}.nd{fill:var(--soft);stroke:var(--mute);stroke-width:1.5;transition:stroke .2s,stroke-width .2s}.nd.r{fill:var(--panel);stroke:var(--teal);stroke-width:2.5}
+.nt{fill:var(--ink);font:700 15px "Bricolage Grotesque",sans-serif;text-anchor:middle}.nl{fill:var(--ink);font:600 13px "Instrument Sans",sans-serif;text-anchor:middle}.pt{fill:var(--mute);font:11px "JetBrains Mono",monospace;text-anchor:middle}
+.pk{transition:transform .42s linear}
+.key{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin-top:4px}.key i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}@media (max-width:640px){.grid{grid-template-columns:1fr}}
+.box{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--bg)}
+.box h3{font-size:16px;margin-bottom:6px}
+.tbl{font:13px/1.55 "JetBrains Mono",monospace;color:var(--mute);white-space:pre-wrap;word-break:break-all}
+.say{font:600 22px/1.3 "Bricolage Grotesque",sans-serif;min-height:3.9em;margin:2px 0 6px}
+.say small{display:block;font:400 15px/1.5 "Instrument Sans",sans-serif;color:var(--mute);margin-top:6px}
+#log{height:220px;overflow:auto;font:12.5px/1.55 "JetBrains Mono",monospace}#log div{border-bottom:1px solid var(--line);padding:2px 0;white-space:pre}
+.ev-hit{color:var(--amber)}.ev-agg{color:var(--teal);font-weight:500}.ev-drop{color:var(--red);font-weight:500}.ev-fwd{color:var(--mute)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.stats div{font-size:13px;color:var(--mute);line-height:1.3}.stats b{display:block;font:700 30px "Bricolage Grotesque",sans-serif;color:var(--ink);line-height:1.1}
+.stats .hl b{color:var(--teal)}
+h2{font-size:clamp(26px,3.6vw,38px);font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
+.band{padding-top:56px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.def{border-left:3px solid var(--teal);padding:2px 0 2px 16px;margin-bottom:20px}.def h3{font-size:20px;margin-bottom:4px}.def p{margin:0;color:var(--mute)}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;margin:0;overflow-x:auto;font-size:13px;line-height:1.55}
+ol.flow{padding-left:20px;margin:0}ol.flow li{margin-bottom:7px}
+.files{columns:2;font:14px/1.9 "JetBrains Mono",monospace;color:var(--mute)}.files b{color:var(--ink);font-weight:500}
+@media (max-width:640px){.files{columns:1}}
+footer{max-width:1240px;margin:0 auto;padding:48px 24px 44px;color:var(--mute);font-size:14px}
+@media (prefers-reduced-motion:reduce){.pk,.nd{transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<nav><b>NDN Router Prototype</b><a href="#demo">Live network</a><a href="#why">Why NDN</a><a href="#router">Router logic</a><a href="#packets">Packets</a><a href="#code">Code</a></nav>
+
+<header>
+<h1>Named Data Networking</h1>
+<p>Ask for <span class="path">/university/cs/notes/lecture1.pdf</span>, not for a machine. Any router that holds the content can answer. Below is the project running: two routers, a producer and two consumers. Press the steps in order.</p>
+</header>
+
+<section id="demo" class="demo">
+<div class="card">
+<div class="steps">
+<button class="go" onclick="sc(1)"><b>1</b>Cold fetch</button>
+<button class="go" onclick="sc(2)"><b>2</b>Cache hit</button>
+<button class="go" onclick="sc(3)"><b>3</b>Two users at once</button>
+<button class="go" onclick="sc(4)"><b>4</b>Flash crowd</button>
+<button class="go" onclick="sc(5)"><b>5</b>Unsolicited Data</button>
+<button class="go" onclick="sc(6)"><b>6</b>Unknown name</button>
+<button onclick="init()">Reset network</button>
+</div>
+<div class="opts">
+<label>Content <select id="nm" aria-label="Content name"><option>/university/cs/notes/lecture1.pdf</option><option>/university/cs/notes/lecture2.pdf</option><option>/university/cs/assignments/a1.txt</option></select></label>
+<label>Producer delay <input id="dl" type="range" min="300" max="3000" step="100" value="1500" oninput="$('dv').textContent=(this.value/1000).toFixed(1)+' s'"><span id="dv">1.5 s</span></label>
+</div>
+<svg viewBox="0 0 780 300" role="img" aria-label="Topology: Consumers A and B connect to Router 1, then Router 2, then the Producer. An attacker node also links to Router 1.">
+<line class="ln" x1="90" y1="60" x2="280" y2="140"/><line class="ln" x1="90" y1="230" x2="280" y2="150"/><line class="ln" x1="280" y1="145" x2="490" y2="145"/><line class="ln" x1="490" y1="145" x2="690" y2="145"/><line class="ln" x1="330" y1="262" x2="290" y2="178" stroke-dasharray="4 4"/>
+<g id="nodes"></g><g id="pk"></g>
+</svg>
+<div class="key"><span><i style="background:var(--pI)"></i>Interest (request)</span><span><i style="background:var(--pD)"></i>Data (signed content)</span><span><i style="background:var(--pN)"></i>NACK or forged Data</span></div>
+<div class="grid">
+<div class="box"><h3>Router 1</h3><div class="tbl" id="t1"></div></div>
+<div class="box"><h3>Router 2</h3><div class="tbl" id="t2"></div></div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:18px">
+<div class="card">
+<div class="say" id="say" aria-live="polite">Press 1 to send the first request.<small>Nothing is cached yet, so the request has to travel all the way to the producer.</small></div>
+<div class="stats">
+<div><b id="s0">0</b>requests sent by consumers</div>
+<div class="hl"><b id="s1">0</b>Interests that reached the producer</div>
+<div><b id="s5">-</b>last response time</div>
+<div><b id="s2">0</b>cache hits</div>
+<div><b id="s3">0</b>Interests merged in PIT</div>
+<div><b id="s4">0</b>bad Data dropped</div>
+</div>
+</div>
+<div class="card"><h3 style="font-size:16px;margin-bottom:6px">Event log</h3><div id="log" role="log"></div></div>
+</div>
+</section>
+
+<section id="why" class="band">
+<h2>What the demo proves</h2>
+<div class="two">
+<div>
+<div class="def"><h3>Less bandwidth</h3><p>Step 2: the second user gets the file from Router 1’s Content Store in milliseconds, and the producer is never contacted.</p></div>
+<div class="def"><h3>Protection from overload</h3><p>Steps 3 and 4: identical requests are merged by the Pending Interest Table, so ten requests cost the producer one.</p></div>
+<div class="def"><h3>Security in the data</h3><p>Step 5: Data nobody asked for is dropped. Every real Data packet carries a signature that consumers verify, whichever node served it.</p></div>
+</div>
+<div>
+<p style="margin-top:0;color:var(--mute)">In IP networking, each of those requests would be a separate connection to one server address. NDN has no host addresses in its packets at all. Routing, caching and security all work on the content name.</p>
+<p style="color:var(--mute)">Topology used: Consumer A (6001) and Consumer B (6002) connect to Router 1 (5001), then Router 2 (5002), then the Producer (5003), as UDP sockets on 127.0.0.1.</p>
+</div>
+</div>
+</section>
+
+<section id="router" class="band">
+<h2>How each router decides</h2>
+<div class="two">
+<div>
+<div class="def"><h3>Content Store</h3><p>LRU cache of Data packets, capacity 5, exact name match.</p></div>
+<div class="def"><h3>Pending Interest Table</h3><p>Name to the ports waiting for it. Merges duplicates and records the way back. Entries expire after 10 seconds.</p></div>
+<div class="def"><h3>Forwarding Information Base</h3><p>Name prefix to next-hop port, using longest-prefix match on whole name components.</p></div>
+</div>
+<div>
+<h3 style="margin-bottom:10px">Interest arrives</h3>
+<ol class="flow"><li>Nonce already seen for this name? Drop and send NACK (LOOP).</li><li>Name in the Content Store? Return the cached Data.</li><li>Name in the PIT? Add this port and stop.</li><li>FIB match? Record in the PIT and forward. Otherwise send NACK (NO_ROUTE).</li></ol>
+<h3 style="margin:18px 0 10px">Data arrives</h3>
+<ol class="flow"><li>Name not in the PIT? Drop it as unsolicited.</li><li>Verify the signature and store in the Content Store.</li><li>Send to every port in the PIT entry, then delete the entry.</li></ol>
+</div>
+</div>
+</section>
+
+<section id="packets" class="band">
+<h2>Packets carry names, not addresses</h2>
+<div class="two">
+<pre>{
+  "type": "INTEREST",
+  "name": "/university/cs/notes/lecture1.pdf",
+  "nonce": 482913
+}</pre>
+<pre>{
+  "type": "DATA",
+  "name": "/university/cs/notes/lecture1.pdf",
+  "payload": "...file content...",
+  "signature": "HMAC-SHA256(name + payload)"
+}</pre>
+</div>
+</section>
+
+<section id="code" class="band">
+<h2>The Python project</h2>
+<p style="color:var(--mute);max-width:70ch;margin-top:0">Standard library only, with optional <code>rich</code> tables for the terminal view. <code>demo.bat</code> starts every node on Windows.</p>
+<div class="files">
+<div><b>common.py</b> packets, signing, logging</div><div><b>router.py</b> CS, PIT, FIB, forwarding</div>
+<div><b>producer.py</b> serves signed content</div><div><b>consumer.py</b> requests, verifies, times</div>
+<div><b>inject.py</b> sends forged Data</div><div><b>config.json</b> ports, FIB, cache size</div>
+<div><b>tests/</b> unit and live-scenario tests</div><div><b>README.md</b> full documentation</div>
+</div>
+</section>
+
+<footer>Data Communication project. Presented by Om Mahajan, PRN 202501080206, Roll No 125.</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const P={A:[60,60,'A','Consumer A','6001'],B:[60,235,'B','Consumer B','6002'],R1:[280,145,'R1','Router 1','5001'],R2:[490,145,'R2','Router 2','5002'],P:[700,145,'P','Producer','5003'],X:[340,265,'X','Attacker','forged']};
+$('nodes').innerHTML=Object.entries(P).map(([k,[x,y,s,n,p]])=>`<circle id="n${k}" class="nd ${k[0]=='R'?'r':''}" cx="${x}" cy="${y}" r="32"/><text class="nt" x="${x}" y="${y+5}">${s}</text><text class="nl" x="${x}" y="${y+54}">${n}</text><text class="pt" x="${x}" y="${y+68}">port ${p}</text>`).join('');
+let S,T0,busy=[];
+function init(){busy.forEach(clearTimeout);busy=[];S={R1:{cs:[],pit:{},up:'R2'},R2:{cs:[],pit:{},up:'P'},ask:0,served:0,hits:0,agg:0,drop:0};T0={};$('log').innerHTML='';$('s5').textContent='-';say('Network reset.','All caches and pending tables are empty. Press 1 for a cold fetch.');draw()}
+function say(t,s){$('say').innerHTML=t+(s?`<small>${s}</small>`:'')}
+function log(w,ev,nm,cls){const d=document.createElement('div');d.className=cls||'';d.textContent=w.padEnd(11)+ev.padEnd(24)+nm.split('/').pop();$('log').appendChild(d);$('log').scrollTop=1e5}
+function flash(n,c){const e=$('n'+n);e.style.stroke=c;e.style.strokeWidth=6;setTimeout(()=>{e.style.stroke='';e.style.strokeWidth=''},700)}
+function draw(){['R1','R2'].forEach((r,i)=>{const x=S[r],nm=n=>n.split('/').pop();$('t'+(i+1)).textContent='Content Store: '+(x.cs.length?x.cs.map(nm).join(', '):'empty')+'\nPIT: '+(Object.keys(x.pit).length?Object.entries(x.pit).map(([n,e])=>nm(n)+' <- '+e.in.join(',')).join('; '):'empty')+'\nFIB: /university -> '+x.up});
+$('s0').textContent=S.ask;$('s1').textContent=S.served;$('s2').textContent=S.hits;$('s3').textContent=S.agg;$('s4').textContent=S.drop}
+function tx(a,b,k){const [x1,y1]=P[a],[x2,y2]=P[b],c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('r',9);c.setAttribute('cx',x1);c.setAttribute('cy',y1);c.setAttribute('class','pk');c.setAttribute('fill',k.t=='I'?'var(--pI)':k.t=='D'&&!k.bad?'var(--pD)':'var(--pN)');$('pk').appendChild(c);requestAnimationFrame(()=>requestAnimationFrame(()=>c.style.transform=`translate(${x2-x1}px,${y2-y1}px)`));setTimeout(()=>{c.remove();recv(b,a,k)},430)}
+function recv(n,from,k){if(n[0]=='R')return router(n,from,k);if(n=='P')return prod(from,k);if(n=='A'||n=='B')return cons(n,k)}
+function router(n,from,k){const r=S[n],pit=r.pit[k.n],f=k.n.split('/').pop();
+if(k.t=='I'){const ci=r.cs.indexOf(k.n);
+if(ci>=0){r.cs.push(r.cs.splice(ci,1)[0]);S.hits++;flash(n,'var(--pD)');log(n,'CS HIT',k.n,'ev-hit');say(n+' answered from its Content Store.','The Interest stopped here. The producer saw no traffic, and the reply took far less time.');tx(n,from,{t:'D',n:k.n});}
+else if(pit){pit.in.push(from);S.agg++;flash(n,'var(--pI)');log(n,'PIT AGGREGATED',k.n,'ev-agg');say(n+' merged a duplicate request.','The same name is already pending, so this one is recorded in the PIT and not sent upstream.');}
+else if(k.n.startsWith('/university/')){r.pit[k.n]={in:[from]};log(n,'FORWARD',k.n,'ev-fwd');say(n+' forwards the Interest to '+r.up+'.','No cache copy and nothing pending, so the FIB match on /university gives the next hop. A PIT entry remembers the way back.');tx(n,r.up,k);}
+else{flash(n,'var(--pN)');log(n,'NACK NO_ROUTE',k.n,'ev-drop');say(n+' has no route for this name.','No FIB prefix matches, so it sends a NACK back to the requester.');tx(n,from,{t:'N',n:k.n});}}
+else if(k.t=='D'){if(!pit){S.drop++;flash(n,'var(--pN)');log(n,'UNSOLICITED DATA DROP',k.n,'ev-drop');say(n+' dropped Data nobody asked for.','There is no PIT entry for this name, so the packet cannot be cached or forwarded. Caches stay clean.');}
+else{r.cs=r.cs.filter(x=>x!=k.n);r.cs.push(k.n);if(r.cs.length>5)r.cs.shift();flash(n,'var(--pD)');log(n,'DATA CACHED+FORWARDED',k.n,'ev-hit');say(n+' cached the Data and sent it back.','It followed the PIT breadcrumbs to '+pit.in.length+' waiting request(s), then deleted the PIT entry.');pit.in.forEach(p=>tx(n,p,k));delete r.pit[k.n];}}
+else if(k.t=='N'){if(pit){pit.in.forEach(p=>tx(n,p,k));delete r.pit[k.n];}}
+draw()}
+function prod(from,k){S.served++;flash('P','var(--teal)');log('Producer','INTEREST SERVED',k.n);say('The producer received an Interest.','It waits '+($('dv').textContent)+' to simulate a slow origin, then signs and returns the Data.');draw();busy.push(setTimeout(()=>tx('P',from,{t:'D',n:k.n}),+$('dl').value))}
+function cons(n,k){if(k.t=='N'){log('Consumer '+n,'NACK RECEIVED',k.n,'ev-drop');say('Consumer '+n+' received a NACK.','The network answered immediately that this name cannot be routed.');return}
+const q=T0[n+k.n]||[],ms=Math.round(performance.now()-(q.shift()||performance.now()));$('s5').textContent=ms+' ms';log('Consumer '+n,'DATA OK '+ms+'ms','/'+k.n.split('/').pop(),'ev-agg');
+say('Consumer '+n+' got the file in '+ms+' ms.','Signature valid. '+(ms<400?'That is a cache or aggregated response.':'That is a full trip to the producer.'))}
+function ask(c,n){n=n||$('nm').value;(T0[c+n]=T0[c+n]||[]).push(performance.now());S.ask++;log('Consumer '+c,'INTEREST SENT',n);draw();tx(c,'R1',{t:'I',n})}
+function sc(i){busy.forEach(clearTimeout);busy=[];
+if(i==1||i==3||i==4)init();
+if(i==1){say('Consumer A sends an Interest.','Cold network: it must reach the producer. Watch Router 1 and Router 2 cache the Data on the way back.');ask('A')}
+if(i==2){say('Consumer B asks for the same name.','Router 1 should already hold it.');ask('B')}
+if(i==3){say('A and B ask for the same file together.','The first Interest is forwarded. The second finds it pending at Router 1.');ask('A');busy.push(setTimeout(()=>ask('B'),150))}
+if(i==4){say('Ten requests in one second.','Alternating A and B, same file. A flash crowd for one producer.');for(let j=0;j<10;j++)busy.push(setTimeout(()=>ask(j%2?'B':'A'),j*100))}
+if(i==5){const n='/university/cs/fake.pdf';say('An attacker sends Data nobody requested.','Router 1 checks its PIT.');log('Attacker','FORGED DATA SENT',n,'ev-drop');tx('X','R1',{t:'D',n,bad:1})}
+if(i==6){say('Consumer A asks for /other/thing.','No router has a FIB prefix for it.');ask('A','/other/thing')}}
+init();
+</script>
+</body>
+</html>
